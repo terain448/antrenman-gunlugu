@@ -1,0 +1,105 @@
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.dateNavigator {
+  display: grid;
+  grid-template-columns: 3rem 1fr 3rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  border-radius: 1rem;
+  background: var(--surface-panel);
+}
+
+.dateNavigator strong {
+  text-align: center;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  text-transform: capitalize;
+}
+
+.progressCard {
+  display: grid;
+  place-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.progressCard p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.manager,
+.list {
+  display: grid;
+  gap: 1rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form input {
+  min-height: 3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  padding: 0 1rem;
+  background: var(--color-card-muted);
+  color: var(--color-text);
+}
+
+.task {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(51, 65, 85, 0.72);
+  border-radius: 0.9rem;
+  background: var(--surface-panel-soft);
+}
+
+.task label {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.task input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-primary-soft);
+}
+
+.done {
+  color: var(--color-primary-light);
+  text-decoration: line-through;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--primary-border);
+  border-radius: 0.9rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+@media (min-width: 760px) {
+  .layout {
+    grid-template-columns: 16rem 1fr;
+  }
+
+  .form,
+  .task {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}

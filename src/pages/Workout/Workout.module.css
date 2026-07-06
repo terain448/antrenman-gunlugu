@@ -1,0 +1,209 @@
+.stepTracker {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  background:
+    linear-gradient(135deg, var(--primary-glow), var(--surface-panel-strong) 48%),
+    var(--surface-panel);
+}
+
+.stepVisual {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.stepVisual h2,
+.stepVisual p {
+  margin: 0;
+}
+
+.stepVisual p {
+  margin-top: 0.45rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.stepRing {
+  display: grid;
+  width: 8.25rem;
+  min-width: 8.25rem;
+  height: 8.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, var(--color-background-deep) 58%, transparent 60%),
+    conic-gradient(var(--color-accent) var(--progress), rgba(51, 65, 85, 0.8) 0);
+  color: var(--color-text);
+  box-shadow: 0 1.25rem 2.5rem var(--shadow-primary);
+}
+
+.stepRing svg {
+  color: var(--color-accent);
+  font-size: 1.35rem;
+}
+
+.stepRing strong {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.stepRing span {
+  color: var(--color-primary-light);
+  font-weight: 800;
+}
+
+.stepControls {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.stepAmounts {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.stepControls label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.stepControls input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--surface-panel-soft);
+  color: var(--color-text);
+  padding: 0 0.9rem;
+}
+
+.decreaseButton {
+  box-shadow: none;
+}
+
+.manager {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.managerHeader {
+  display: grid;
+  gap: 1rem;
+}
+
+.managerHeader h2,
+.managerHeader p {
+  margin: 0;
+}
+
+.managerHeader p {
+  margin-top: 0.35rem;
+  color: var(--color-text-secondary);
+}
+
+.managerHeader label,
+.workoutForm label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.managerHeader input,
+.workoutForm input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--surface-panel-soft);
+  color: var(--color-text);
+  padding: 0 0.9rem;
+}
+
+.workoutForm {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.workout {
+  display: grid;
+  gap: 1rem;
+}
+
+.workout span {
+  color: var(--color-primary-light);
+  font-weight: 800;
+}
+
+.workout h2 {
+  margin: 0;
+}
+
+.details {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.details strong {
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: var(--surface-panel-soft);
+  color: var(--color-text-muted);
+}
+
+.workoutActions {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.emptyState {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--primary-border);
+  border-radius: 0.9rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .stepTracker {
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+  }
+
+  .managerHeader {
+    grid-template-columns: 1fr 14rem;
+    align-items: end;
+  }
+
+  .workoutForm {
+    grid-template-columns: 1.1fr 1.6fr 0.7fr 0.7fr auto auto;
+    align-items: end;
+  }
+}
+
+@media (max-width: 560px) {
+  .stepVisual {
+    display: grid;
+  }
+
+  .stepRing {
+    width: 7.5rem;
+    min-width: 7.5rem;
+    height: 7.5rem;
+  }
+}

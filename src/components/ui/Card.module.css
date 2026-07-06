@@ -1,0 +1,15 @@
+.card {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  border-radius: 1rem;
+  background: var(--surface-panel);
+  box-shadow: 0 1.25rem 3rem rgba(2, 6, 23, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: 1.25rem;
+  }
+}

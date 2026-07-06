@@ -1,0 +1,31 @@
+.layout {
+  min-height: 100vh;
+}
+
+.content {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1rem 1rem 6.8rem;
+}
+
+@media (min-width: 768px) {
+  .layout {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+  }
+
+  .content {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1120px) {
+  .layout {
+    grid-template-columns: 17rem 1fr;
+  }
+
+  .content {
+    padding: 2rem;
+  }
+}

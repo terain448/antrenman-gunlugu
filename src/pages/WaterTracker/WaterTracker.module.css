@@ -1,0 +1,130 @@
+.layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.visualCard,
+.controls {
+  display: grid;
+  gap: 1rem;
+}
+
+.visualCard {
+  place-items: center;
+  min-height: 28rem;
+}
+
+.orb {
+  position: relative;
+  display: grid;
+  width: min(72vw, 20rem);
+  aspect-ratio: 1;
+  place-items: center;
+  align-content: center;
+  overflow: hidden;
+  border: 1px solid var(--primary-border);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(248, 250, 252, 0.42), transparent 12%),
+    radial-gradient(circle at 65% 78%, var(--primary-strong-glow), transparent 24%),
+    #172033;
+  box-shadow:
+    inset -1.2rem -1.5rem 3rem rgba(2, 6, 23, 0.62),
+    inset 1rem 1rem 2.4rem rgba(248, 250, 252, 0.08),
+    0 2rem 4rem rgba(2, 6, 23, 0.34);
+}
+
+.orb strong {
+  z-index: 3;
+  font-size: 3.2rem;
+}
+
+.orb small {
+  z-index: 3;
+  color: #dbeafe;
+}
+
+.water {
+  position: absolute;
+  inset: calc(100% - var(--fill)) 0 0;
+  background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary-soft));
+  transition: inset 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.waveOne,
+.waveTwo {
+  position: absolute;
+  top: -2.2rem;
+  left: -25%;
+  width: 150%;
+  height: 4rem;
+  border-radius: 43%;
+  background: rgba(248, 250, 252, 0.28);
+  animation: wave 6s linear infinite;
+}
+
+.waveTwo {
+  opacity: 0.55;
+  animation-duration: 9s;
+  animation-direction: reverse;
+}
+
+.gloss {
+  position: absolute;
+  inset: 10% auto auto 17%;
+  width: 22%;
+  height: 38%;
+  border-radius: 50%;
+  background: rgba(248, 250, 252, 0.18);
+  filter: blur(1px);
+  transform: rotate(24deg);
+}
+
+.controls h2 {
+  margin: 0;
+}
+
+.amounts {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.controls label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.controls input {
+  min-height: 3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  padding: 0 1rem;
+  background: var(--color-card-muted);
+  color: var(--color-text);
+}
+
+.decreaseButton {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@keyframes wave {
+  from {
+    transform: translateX(0) rotate(0deg);
+  }
+
+  to {
+    transform: translateX(10%) rotate(360deg);
+  }
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: start;
+  }
+}

@@ -1,0 +1,104 @@
+.metrics,
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.metrics {
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.metricLink {
+  display: grid;
+  min-width: 0;
+}
+
+.cardLink {
+  display: grid;
+  min-width: 0;
+}
+
+.metricLink:focus-visible,
+.cardLink:focus-visible {
+  border-radius: 1rem;
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 3px;
+}
+
+.metrics article,
+.metrics section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.icon {
+  color: var(--color-primary-light);
+  font-size: 1.45rem;
+}
+
+.metrics span,
+.task small {
+  color: var(--color-text-secondary);
+}
+
+.metrics strong {
+  font-size: 1.65rem;
+}
+
+.grid {
+  grid-template-columns: 1fr;
+}
+
+.tasks,
+.centerCard,
+.chartCard,
+.motivation {
+  display: grid;
+  gap: 1rem;
+}
+
+.tasks h2,
+.centerCard h2,
+.chartCard h2,
+.motivation h2 {
+  margin: 0;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  background: var(--surface-panel-soft);
+}
+
+.done {
+  color: var(--color-primary-light);
+  text-decoration: line-through;
+}
+
+.centerCard {
+  place-items: center;
+}
+
+.motivation p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .chartCard {
+    min-height: 100%;
+  }
+
+  .chartLink {
+    grid-column: span 2;
+  }
+}
