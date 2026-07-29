@@ -66,8 +66,18 @@ export function CoupleDataProvider({ children }) {
   }, []);
 
   const persistData = useCallback((patch) => {
-    if (!isSupabaseConfigured || !isLoaded.current || Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length === 0) return;
+    if (!isSupabaseConfigured) {
+      console.error("Supabase write skipped: Supabase is not configured.", { domains: Object.keys(patch) });
+      setSyncStatus("error");
+      setSyncError("Supabase yapılandırması eksik.");
+      return;
+    }
     pendingPatches.current = { ...pendingPatches.current, ...patch };
+    if (!isLoaded.current) {
+      console.info("State change queued until the initial Supabase load finishes.", { domains: Object.keys(patch) });
+      return;
+    }
     if (flushTimer.current) clearTimeout(flushTimer.current);
     flushTimer.current = setTimeout(() => {
       flushTimer.current = null;
@@ -107,9 +117,13 @@ export function CoupleDataProvider({ children }) {
         setNotes(remoteNotes);
         isLoaded.current = true;
         setSyncStatus("synced");
+        if (Object.keys(pendingPatches.current).length > 0) {
+          flushPatches();
+        }
       })
       .catch((error) => {
         if (!active) return;
+        console.error("Initial Supabase load failed:", error);
         setSyncStatus("error");
         setSyncError(error.message || "Supabase bağlantısı kurulamadı.");
       });
@@ -146,6 +160,7 @@ export function CoupleDataProvider({ children }) {
           .filter((key) => nextData[key] !== currentData[key])
           .map((key) => [key, nextData[key]]),
       );
+      console.info("Application state changed; scheduling Supabase save.", { domains: Object.keys(patch) });
       persistData(patch);
       return nextData;
     });
