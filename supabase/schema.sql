@@ -21,6 +21,26 @@ create table if not exists public.daily_notes (
   unique (couple_id, author_id, note_date)
 );
 
+-- Apply a top-level state patch atomically. Run this after the table creation
+-- when upgrading an existing project. `||` intentionally gives the submitted
+-- values precedence only for domains changed by that action.
+create or replace function public.patch_couple_state(p_couple_id text, p_state_patch jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.couple_states as target (couple_id, state, updated_at)
+  values (p_couple_id, coalesce(p_state_patch, '{}'::jsonb), now())
+  on conflict (couple_id) do update
+  set state = target.state || excluded.state,
+      updated_at = now();
+end;
+$$;
+
+grant execute on function public.patch_couple_state(text, jsonb) to anon, authenticated;
+
 alter table public.couple_states enable row level security;
 alter table public.daily_notes enable row level security;
 

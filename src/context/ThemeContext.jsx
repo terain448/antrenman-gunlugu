@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { APP_THEMES } from "../constants/theme.js";
+import { useAuth } from "./AuthContext.jsx";
+import { useCoupleData } from "./CoupleDataContext.jsx";
 import { readStorage, writeStorage } from "../utils/storage.js";
 
 const THEME_STORAGE_KEY = "couple_theme";
@@ -12,6 +14,8 @@ function getTheme(themeId) {
 }
 
 export function ThemeProvider({ children }) {
+  const { user } = useAuth();
+  const { preferences, setUserTheme } = useCoupleData();
   const [themeId, setThemeIdState] = useState(() => readStorage(THEME_STORAGE_KEY, DEFAULT_THEME_ID));
   const activeTheme = getTheme(themeId);
 
@@ -19,11 +23,20 @@ export function ThemeProvider({ children }) {
     document.documentElement.dataset.theme = activeTheme.id;
   }, [activeTheme.id]);
 
+  useEffect(() => {
+    const cloudThemeId = preferences?.[user?.id]?.themeId;
+    if (!cloudThemeId) return;
+    const nextTheme = getTheme(cloudThemeId);
+    writeStorage(THEME_STORAGE_KEY, nextTheme.id);
+    setThemeIdState(nextTheme.id);
+  }, [preferences, user?.id]);
+
   const setThemeId = useCallback((nextThemeId) => {
     const nextTheme = getTheme(nextThemeId);
     writeStorage(THEME_STORAGE_KEY, nextTheme.id);
     setThemeIdState(nextTheme.id);
-  }, []);
+    setUserTheme(user?.id, nextTheme.id);
+  }, [setUserTheme, user?.id]);
 
   const value = useMemo(
     () => ({

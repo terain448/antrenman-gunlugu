@@ -1,22 +1,6 @@
-const RESET_MARKER_KEY = "couple_storage_reset_2026_07_07";
-
 export function resetAppStorageOnce() {
-  if (localStorage.getItem(RESET_MARKER_KEY)) {
-    return;
-  }
-
-  const keysToRemove = [];
-
-  for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index);
-
-    if (key?.startsWith("couple_") || key?.startsWith("profile_photo_")) {
-      keysToRemove.push(key);
-    }
-  }
-
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
-  localStorage.setItem(RESET_MARKER_KEY, "true");
+  // Kept as a compatibility no-op. Dashboard data is now cloud-first; deleting
+  // the cache at startup could otherwise destroy the only offline copy.
 }
 
 export function readStorage(key, fallbackValue) {

@@ -5,24 +5,19 @@ import { Card } from "../../components/ui/Card.jsx";
 import { Page } from "../../components/ui/Page.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTheme } from "../../context/ThemeContext.jsx";
+import { useCoupleData } from "../../context/CoupleDataContext.jsx";
 import styles from "./Profile.module.css";
-
-const getProfilePhotoKey = (userId) => `profile_photo_${userId}`;
 
 export function Profile() {
   const { user, logout } = useAuth();
   const { activeTheme, themes, setThemeId } = useTheme();
+  const { profiles, setProfilePhoto: saveProfilePhoto } = useCoupleData();
   const photoInputId = useId();
   const [profilePhoto, setProfilePhoto] = useState("");
 
   useEffect(() => {
-    if (!user?.id) {
-      setProfilePhoto("");
-      return;
-    }
-
-    setProfilePhoto(localStorage.getItem(getProfilePhotoKey(user.id)) ?? "");
-  }, [user?.id]);
+    setProfilePhoto(profiles?.[user?.id]?.photo ?? "");
+  }, [profiles, user?.id]);
 
   const handlePhotoChange = (event) => {
     const [file] = event.target.files;
@@ -35,7 +30,7 @@ export function Profile() {
 
     reader.addEventListener("load", () => {
       const photoData = reader.result.toString();
-      localStorage.setItem(getProfilePhotoKey(user.id), photoData);
+      saveProfilePhoto(user.id, photoData);
       setProfilePhoto(photoData);
     });
 
@@ -48,7 +43,7 @@ export function Profile() {
       return;
     }
 
-    localStorage.removeItem(getProfilePhotoKey(user.id));
+    saveProfilePhoto(user.id, "");
     setProfilePhoto("");
   };
 

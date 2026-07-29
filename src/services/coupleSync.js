@@ -9,12 +9,14 @@ export async function loadCoupleState(coupleId = DEFAULT_COUPLE_ID) {
   return data?.state ?? null;
 }
 
-export async function saveCoupleState(state, coupleId = DEFAULT_COUPLE_ID) {
+export async function saveCoupleState(statePatch, coupleId = DEFAULT_COUPLE_ID) {
   if (!isSupabaseConfigured) return;
-  const { error } = await supabase.from("couple_states").upsert(
-    { couple_id: coupleId, state, updated_at: new Date().toISOString() },
-    { onConflict: "couple_id" },
-  );
+  // The RPC atomically replaces only the changed top-level domains. This keeps
+  // a task edit from overwriting a concurrent water or calendar update.
+  const { error } = await supabase.rpc("patch_couple_state", {
+    p_couple_id: coupleId,
+    p_state_patch: statePatch,
+  });
   if (error) throw error;
 }
 

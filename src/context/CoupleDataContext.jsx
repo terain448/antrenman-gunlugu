@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DAILY_STEP_GOAL, DAILY_WATER_GOAL_ML } from "../constants/theme.js";
 import { useAuth } from "./AuthContext.jsx";
 import { isSupabaseConfigured } from "../services/supabaseClient.js";
@@ -16,7 +16,20 @@ const defaultData = {
   steps: {},
   stepsByUser: {},
   workouts: [],
+  profiles: {},
+  preferences: {},
 };
+
+function normalizeData(value) {
+  return { ...defaultData, ...(value ?? {}) };
+}
+
+function hasData(value) {
+  return value.tasks.length > 0 || value.events.length > 0 || value.workouts.length > 0
+    || Object.keys(value.water).length > 0 || Object.keys(value.steps).length > 0
+    || Object.keys(value.waterByUser ?? {}).length > 0 || Object.keys(value.stepsByUser ?? {}).length > 0
+    || Object.keys(value.profiles ?? {}).length > 0 || Object.keys(value.preferences ?? {}).length > 0;
+}
 
 const CoupleDataContext = createContext(null);
 
@@ -26,35 +39,73 @@ function createId(prefix) {
 
 export function CoupleDataProvider({ children }) {
   const { user } = useAuth();
-  const [data, setData] = useState(() => readStorage(DATA_STORAGE_KEY, defaultData));
+  // Cache is used only as an offline/initial rendering cache. A successful
+  // Supabase read always replaces it, making the cloud the source of truth.
+  const [data, setData] = useState(() => normalizeData(readStorage(DATA_STORAGE_KEY, defaultData)));
   const [notes, setNotes] = useState([]);
   const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? "loading" : "local");
   const [syncError, setSyncError] = useState("");
+  const pendingPatches = useRef({});
+  const flushTimer = useRef(null);
+  const isLoaded = useRef(false);
 
-  const persistData = useCallback((nextData) => {
+  const flushPatches = useCallback(async () => {
     if (!isSupabaseConfigured) return;
+    const patch = pendingPatches.current;
+    pendingPatches.current = {};
+    if (Object.keys(patch).length === 0) return;
     setSyncStatus("syncing");
-    saveCoupleState(nextData)
+    saveCoupleState(patch)
       .then(() => setSyncStatus("synced"))
       .catch((error) => {
+        // Keep unsent changes in the cache and retry them with the next action.
+        pendingPatches.current = { ...patch, ...pendingPatches.current };
         setSyncStatus("error");
         setSyncError(error.message || "Veriler eşitlenemedi.");
       });
   }, []);
 
+  const persistData = useCallback((patch) => {
+    if (!isSupabaseConfigured || !isLoaded.current || Object.keys(patch).length === 0) return;
+    pendingPatches.current = { ...pendingPatches.current, ...patch };
+    if (flushTimer.current) clearTimeout(flushTimer.current);
+    flushTimer.current = setTimeout(() => {
+      flushTimer.current = null;
+      flushPatches();
+    }, 180);
+  }, [flushPatches]);
+
   useEffect(() => {
-    if (!isSupabaseConfigured) return undefined;
+    if (!isSupabaseConfigured || !user) return undefined;
     let active = true;
+    let receivedRealtimeState = false;
+    isLoaded.current = false;
 
     Promise.all([loadCoupleState(), loadNotes()])
       .then(([remoteData, remoteNotes]) => {
         if (!active) return;
-        if (remoteData) {
-          const nextData = { ...defaultData, ...remoteData };
+        if (remoteData && !receivedRealtimeState) {
+          const nextData = normalizeData(remoteData);
           setData(nextData);
           writeStorage(DATA_STORAGE_KEY, nextData);
+        } else {
+          // One-time migration of pre-Supabase data. Once a cloud record
+          // exists, it always wins over this cache on subsequent sessions.
+          const cachedData = normalizeData(readStorage(DATA_STORAGE_KEY, defaultData));
+          if (hasData(cachedData)) {
+            setData(cachedData);
+            saveCoupleState(cachedData).catch((error) => {
+              if (active) {
+                setSyncStatus("error");
+                setSyncError(error.message || "Yerel veriler aktarılamadı.");
+              }
+            });
+          } else {
+            setData(defaultData);
+          }
         }
         setNotes(remoteNotes);
+        isLoaded.current = true;
         setSyncStatus("synced");
       })
       .catch((error) => {
@@ -66,7 +117,8 @@ export function CoupleDataProvider({ children }) {
     const unsubscribe = subscribeToCoupleChanges({
       onState: (remoteData) => {
         if (!active) return;
-        const nextData = { ...defaultData, ...remoteData };
+        receivedRealtimeState = true;
+        const nextData = normalizeData(remoteData);
         setData(nextData);
         writeStorage(DATA_STORAGE_KEY, nextData);
         setSyncStatus("synced");
@@ -76,15 +128,25 @@ export function CoupleDataProvider({ children }) {
 
     return () => {
       active = false;
+      isLoaded.current = false;
+      if (flushTimer.current) {
+        clearTimeout(flushTimer.current);
+        flushTimer.current = null;
+      }
       unsubscribe();
     };
-  }, [persistData]);
+  }, [user?.id]);
 
   const updateData = useCallback((updater) => {
     setData((currentData) => {
       const nextData = typeof updater === "function" ? updater(currentData) : updater;
       writeStorage(DATA_STORAGE_KEY, nextData);
-      persistData(nextData);
+      const patch = Object.fromEntries(
+        Object.keys(defaultData)
+          .filter((key) => nextData[key] !== currentData[key])
+          .map((key) => [key, nextData[key]]),
+      );
+      persistData(patch);
       return nextData;
     });
   }, []);
@@ -311,6 +373,34 @@ export function CoupleDataProvider({ children }) {
     [updateData],
   );
 
+  const setProfilePhoto = useCallback(
+    (userId, photoData) => {
+      if (!userId) return;
+      updateData((current) => ({
+        ...current,
+        profiles: {
+          ...(current.profiles ?? {}),
+          [userId]: { ...((current.profiles ?? {})[userId] ?? {}), photo: photoData, updatedAt: new Date().toISOString() },
+        },
+      }));
+    },
+    [updateData],
+  );
+
+  const setUserTheme = useCallback(
+    (userId, themeId) => {
+      if (!userId) return;
+      updateData((current) => ({
+        ...current,
+        preferences: {
+          ...(current.preferences ?? {}),
+          [userId]: { ...((current.preferences ?? {})[userId] ?? {}), themeId, updatedAt: new Date().toISOString() },
+        },
+      }));
+    },
+    [updateData],
+  );
+
   const statistics = useMemo(() => {
     return getWeekDays().map((day) => {
       const completedTasks = data.tasks.filter((task) => task.date === day.key && task.completed).length;
@@ -366,6 +456,8 @@ export function CoupleDataProvider({ children }) {
       addWorkout,
       updateWorkout,
       deleteWorkout,
+      setProfilePhoto,
+      setUserTheme,
     }),
     [
       addEvent,
@@ -389,6 +481,8 @@ export function CoupleDataProvider({ children }) {
       updateEvent,
       updateWorkout,
       updateTask,
+      setProfilePhoto,
+      setUserTheme,
     ],
   );
 
