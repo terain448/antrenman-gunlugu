@@ -1,5 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DAILY_STEP_GOAL, DAILY_WATER_GOAL_ML } from "../constants/theme.js";
+import { useAuth } from "./AuthContext.jsx";
+import { isSupabaseConfigured } from "../services/supabaseClient.js";
+import { loadCoupleState, loadNotes, saveCoupleState, saveNote, subscribeToCoupleChanges } from "../services/coupleSync.js";
 import { getCurrentMonthWeeks, getWeekDays, toDateKey } from "../utils/date.js";
 import { readStorage, writeStorage } from "../utils/storage.js";
 
@@ -9,7 +12,9 @@ const defaultData = {
   tasks: [],
   events: [],
   water: {},
+  waterByUser: {},
   steps: {},
+  stepsByUser: {},
   workouts: [],
 };
 
@@ -20,12 +25,66 @@ function createId(prefix) {
 }
 
 export function CoupleDataProvider({ children }) {
+  const { user } = useAuth();
   const [data, setData] = useState(() => readStorage(DATA_STORAGE_KEY, defaultData));
+  const [notes, setNotes] = useState([]);
+  const [syncStatus, setSyncStatus] = useState(isSupabaseConfigured ? "loading" : "local");
+  const [syncError, setSyncError] = useState("");
+
+  const persistData = useCallback((nextData) => {
+    if (!isSupabaseConfigured) return;
+    setSyncStatus("syncing");
+    saveCoupleState(nextData)
+      .then(() => setSyncStatus("synced"))
+      .catch((error) => {
+        setSyncStatus("error");
+        setSyncError(error.message || "Veriler eşitlenemedi.");
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return undefined;
+    let active = true;
+
+    Promise.all([loadCoupleState(), loadNotes()])
+      .then(([remoteData, remoteNotes]) => {
+        if (!active) return;
+        if (remoteData) {
+          const nextData = { ...defaultData, ...remoteData };
+          setData(nextData);
+          writeStorage(DATA_STORAGE_KEY, nextData);
+        }
+        setNotes(remoteNotes);
+        setSyncStatus("synced");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setSyncStatus("error");
+        setSyncError(error.message || "Supabase bağlantısı kurulamadı.");
+      });
+
+    const unsubscribe = subscribeToCoupleChanges({
+      onState: (remoteData) => {
+        if (!active) return;
+        const nextData = { ...defaultData, ...remoteData };
+        setData(nextData);
+        writeStorage(DATA_STORAGE_KEY, nextData);
+        setSyncStatus("synced");
+      },
+      onNotes: (remoteNotes) => active && setNotes(remoteNotes),
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [persistData]);
 
   const updateData = useCallback((updater) => {
     setData((currentData) => {
       const nextData = typeof updater === "function" ? updater(currentData) : updater;
       writeStorage(DATA_STORAGE_KEY, nextData);
+      persistData(nextData);
       return nextData;
     });
   }, []);
@@ -35,7 +94,7 @@ export function CoupleDataProvider({ children }) {
       updateData((current) => ({
         ...current,
         tasks: [
-          { id: createId("task"), title, completed: false, date },
+          { id: createId("task"), title, completed: false, date, ownerId: user?.id ?? "admin" },
           ...current.tasks,
         ],
       }));
@@ -50,7 +109,7 @@ export function CoupleDataProvider({ children }) {
         tasks: current.tasks.map((task) => (task.id === taskId ? { ...task, ...payload } : task)),
       }));
     },
-    [updateData],
+    [updateData, user?.id],
   );
 
   const deleteTask = useCallback(
@@ -67,7 +126,7 @@ export function CoupleDataProvider({ children }) {
     (event) => {
       updateData((current) => ({
         ...current,
-        events: [{ id: createId("event"), ...event }, ...current.events],
+        events: [{ id: createId("event"), ownerId: user?.id ?? "admin", ...event }, ...current.events],
       }));
     },
     [updateData],
@@ -103,10 +162,17 @@ export function CoupleDataProvider({ children }) {
             ...current.water,
             [today]: Math.min((current.water[today] ?? 0) + amount, DAILY_WATER_GOAL_ML),
           },
+          waterByUser: {
+            ...(current.waterByUser ?? {}),
+            [user?.id ?? "admin"]: {
+              ...((current.waterByUser ?? {})[user?.id ?? "admin"] ?? {}),
+              [today]: Math.min((((current.waterByUser ?? {})[user?.id ?? "admin"] ?? {})[today] ?? current.water[today] ?? 0) + amount, DAILY_WATER_GOAL_ML),
+            },
+          },
         };
       });
     },
-    [updateData],
+    [updateData, user?.id],
   );
 
   const decreaseWater = useCallback(
@@ -119,10 +185,17 @@ export function CoupleDataProvider({ children }) {
             ...current.water,
             [today]: Math.max((current.water[today] ?? 0) - amount, 0),
           },
+          waterByUser: {
+            ...(current.waterByUser ?? {}),
+            [user?.id ?? "admin"]: {
+              ...((current.waterByUser ?? {})[user?.id ?? "admin"] ?? {}),
+              [today]: Math.max((((current.waterByUser ?? {})[user?.id ?? "admin"] ?? {})[today] ?? current.water[today] ?? 0) - amount, 0),
+            },
+          },
         };
       });
     },
-    [updateData],
+    [updateData, user?.id],
   );
 
   const addSteps = useCallback(
@@ -135,10 +208,17 @@ export function CoupleDataProvider({ children }) {
             ...(current.steps ?? {}),
             [today]: Math.min(((current.steps ?? {})[today] ?? 0) + amount, DAILY_STEP_GOAL),
           },
+          stepsByUser: {
+            ...(current.stepsByUser ?? {}),
+            [user?.id ?? "admin"]: {
+              ...((current.stepsByUser ?? {})[user?.id ?? "admin"] ?? {}),
+              [today]: Math.min((((current.stepsByUser ?? {})[user?.id ?? "admin"] ?? {})[today] ?? (current.steps ?? {})[today] ?? 0) + amount, DAILY_STEP_GOAL),
+            },
+          },
         };
       });
     },
-    [updateData],
+    [updateData, user?.id],
   );
 
   const decreaseSteps = useCallback(
@@ -151,10 +231,17 @@ export function CoupleDataProvider({ children }) {
             ...(current.steps ?? {}),
             [today]: Math.max(((current.steps ?? {})[today] ?? 0) - amount, 0),
           },
+          stepsByUser: {
+            ...(current.stepsByUser ?? {}),
+            [user?.id ?? "admin"]: {
+              ...((current.stepsByUser ?? {})[user?.id ?? "admin"] ?? {}),
+              [today]: Math.max((((current.stepsByUser ?? {})[user?.id ?? "admin"] ?? {})[today] ?? (current.steps ?? {})[today] ?? 0) - amount, 0),
+            },
+          },
         };
       });
     },
-    [updateData],
+    [updateData, user?.id],
   );
 
   const toggleWorkout = useCallback(
@@ -173,10 +260,33 @@ export function CoupleDataProvider({ children }) {
     (workout) => {
       updateData((current) => ({
         ...current,
-        workouts: [{ id: createId("workout"), completed: false, ...workout }, ...current.workouts],
+        workouts: [{ id: createId("workout"), ownerId: user?.id ?? "admin", completed: false, ...workout }, ...current.workouts],
       }));
     },
     [updateData],
+  );
+
+  const addDailyNote = useCallback(
+    (body) => {
+      const trimmedBody = body.trim().slice(0, 180);
+      if (!trimmedBody || !user) return;
+      const today = toDateKey();
+      const existing = notes.find((note) => note.author_id === user.id && note.note_date === today);
+      const note = {
+        ...(existing?.id ? { id: existing.id } : {}),
+        author_id: user.id,
+        author_name: user.name,
+        body: trimmedBody,
+        note_date: today,
+        created_at: existing?.created_at ?? new Date().toISOString(),
+      };
+      setNotes((current) => [...current.filter((item) => !(item.author_id === user.id && item.note_date === today)), note]);
+      saveNote(note).catch((error) => {
+        setSyncStatus("error");
+        setSyncError(error.message || "Not kaydedilemedi.");
+      });
+    },
+    [notes, user],
   );
 
   const updateWorkout = useCallback(
@@ -237,6 +347,11 @@ export function CoupleDataProvider({ children }) {
       ...data,
       statistics,
       monthlyStatistics,
+      notes,
+      addDailyNote,
+      isCloudEnabled: isSupabaseConfigured,
+      syncStatus,
+      syncError,
       addTask,
       updateTask,
       deleteTask,
@@ -254,6 +369,7 @@ export function CoupleDataProvider({ children }) {
     }),
     [
       addEvent,
+      addDailyNote,
       addTask,
       addSteps,
       addWater,
@@ -265,6 +381,9 @@ export function CoupleDataProvider({ children }) {
       decreaseSteps,
       decreaseWater,
       monthlyStatistics,
+      notes,
+      syncError,
+      syncStatus,
       statistics,
       toggleWorkout,
       updateEvent,

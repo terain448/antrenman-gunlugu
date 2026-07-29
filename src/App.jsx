@@ -10,6 +10,7 @@ import { Statistics } from "./pages/Statistics/Statistics.jsx";
 import { Workout } from "./pages/Workout/Workout.jsx";
 import { WaterTracker } from "./pages/WaterTracker/WaterTracker.jsx";
 import { Profile } from "./pages/Profile/Profile.jsx";
+import { Couple } from "./pages/Couple/Couple.jsx";
 
 export function App() {
   const location = useLocation();
@@ -21,6 +22,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route index element={<Home />} />
+            <Route path="couple" element={<Couple />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="statistics" element={<Statistics />} />

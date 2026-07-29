@@ -5,7 +5,6 @@ import styles from "./BottomNavigation.module.css";
 export function BottomNavigation() {
   return (
     <nav className={styles.bottomNav}>
-      <span className={styles.version}>Beta Version</span>
       <div className={styles.scroller}>
       {NAVIGATION_ITEMS.map((item) => (
         <NavLink

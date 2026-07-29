@@ -160,6 +160,7 @@ body {
   background:
     radial-gradient(circle at top left, var(--primary-glow), transparent 32rem),
     linear-gradient(135deg, var(--color-background) 0%, var(--color-background-deep) 100%);
+  overflow-x: hidden;
 }
 
 button,
